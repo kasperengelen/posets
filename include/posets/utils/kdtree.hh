@@ -281,7 +281,7 @@ namespace posets::utils {
         return true;
       }
       [[nodiscard]] bool operator== (const kdtree& other) const {
-        return this->vector_set == other->vector_set;
+        return this->vector_set == other.vector_set;
       }
       [[nodiscard]] auto size () const { return this->vector_set.size (); }
       [[nodiscard]] bool empty () { return this->vector_set.empty (); }

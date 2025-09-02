@@ -32,7 +32,12 @@
 
 #include "test_maker.hh"
 
-#include <valgrind/callgrind.h>
+#if __has_include(<valgrind/callgrind.h>)
+  #include <valgrind/callgrind.h>
+#else
+  #define CALLGRIND_START_INSTRUMENTATION (void)0
+  #define CALLGRIND_STOP_INSTRUMENTATION (void)0  
+#endif
 
 using namespace std::literals;
 namespace utils = posets::utils;
