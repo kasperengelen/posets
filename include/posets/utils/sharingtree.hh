@@ -43,6 +43,7 @@ namespace posets::utils {
       template <std::ranges::input_range R, class Proj = std::identity>
       sharingtree (R&& elements, Proj proj = {}) : dim (proj (*elements.begin ()).size ()) {
         this->bin_tree = new st_node[dim * elements.size ()];
+        this->root = 0;
 
         // moving the given elements to the internal array in the form of
         // linear trees (just strings) with their roots being siblings
