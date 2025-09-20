@@ -157,7 +157,7 @@ namespace posets::utils {
           st_node* prev_node;
           for (auto&& comp : e) {
             st_node* cur_node = this->bin_tree + idx;
-            cur_node->label = comp;
+            cur_node->label = (int)comp;
             cur_node->bro = -1;
             cur_node->son = -1;
             // if it's the first component of the vector and there is a
@@ -179,7 +179,7 @@ namespace posets::utils {
 
         // now, we make a trie/suffix tree (making sure the children are in
         // decreasing label order)
-        this->to_trie ();
+        //this->to_trie ();
 
         // finally, we proceed bottom-up to merge language equivalent nodes
         // TODO
@@ -194,18 +194,18 @@ namespace posets::utils {
 
         while (not to_visit.empty ()) {
           assert (to_visit.size () <= this->dim);
-          const auto [idx, going_down] = to_visit.top ();
+          const auto [idx, direction] = to_visit.top ();
           to_visit.pop ();
           st_node* cur = this->bin_tree + idx;
-          temp.push_back (cur->label);
 
           // base case: reached the bottom layer
           if (cur->son == -1) {
             assert (to_visit.size () == this->dim - 1);
+            temp.push_back (cur->label);
             std::vector<typename V::value_type> cpy {temp};
             res.push_back (V (std::move (cpy)));
-            // is there a sibling with another label?
             temp.pop_back ();
+            // is there a sibling with another label?
             if (cur->bro > -1)
               to_visit.emplace (cur->bro, 0);
           }
@@ -215,18 +215,21 @@ namespace posets::utils {
             // either this is the first time we've seen the node, and we need
             // to go down pushing a reminder of the next time not being the
             // first, and its sibling...
-            if (going_down) {
+            if (direction == 0) {
               assert (cur->son > -1);
               to_visit.emplace (idx, 1);
+              temp.push_back (cur->label);
               to_visit.emplace (cur->son, 0);
             }
             // or we're already going right and we need to push its
             // sibling (and start by going down from there)
-            else {
+            else if (direction == 1) {
               temp.pop_back ();
               if (cur->bro > -1)
                 to_visit.emplace (cur->bro, 0);
             }
+            else
+              assert (false);
           }
         }
 
