@@ -157,7 +157,7 @@ namespace posets::utils {
           st_node* prev_node;
           for (auto&& comp : e) {
             st_node* cur_node = this->bin_tree + idx;
-            cur_node->label = (int)comp;
+            cur_node->label = (int) comp;
             cur_node->bro = -1;
             cur_node->son = -1;
             // if it's the first component of the vector and there is a
@@ -179,7 +179,7 @@ namespace posets::utils {
 
         // now, we make a trie/suffix tree (making sure the children are in
         // decreasing label order)
-        //this->to_trie ();
+        this->to_trie ();
 
         // finally, we proceed bottom-up to merge language equivalent nodes
         // TODO
