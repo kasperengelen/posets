@@ -14,8 +14,12 @@ simdbm_exe = executable ('simd-bm', 'simd-bm.cc',
 downsetbm_exe = executable ('downset-bm', 'downset-bm.cc',
                             dependencies : [posets_dep ])
 
+lcrstests_exe = executable ('lcrstests', 'lcrstests.cc',
+                            dependencies : [posets_dep ])
+
 test('antichains/vectors random', downsetbm_exe,
      args : ['all', 'all', '--params=build=5,query=5,transfer=5,intersection=5,union=5' ])
 test('antichains/vectors implementations', tests_exe, args : ['all', 'all'])
 test('antichains/vectors kdtests', kdtests_exe)
 test('antichains/vectors sttests', sttests_exe)
+test('antichains/vectors lcrstests', lcrstests_exe)
