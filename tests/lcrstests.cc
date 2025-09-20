@@ -28,7 +28,7 @@ int main (int argc, const char* argv[]) {
 
   // And yet another tree, this time with a shared suffix
   // and with dimension 4
-  data = {{3, 2, 2, 1}, {4, 1, 2, 1}, {5, 0, 2, 1}};
+  data = {{3, 2, 2, 2}, {4, 1, 2, 1}, {5, 0, 2, 1}};
   utils::sharingtree<VType> f3 (std::move (vvtovv (data)));
   std::cout << f3 << std::endl;
   assert (f3.get_all ().size () == 3);

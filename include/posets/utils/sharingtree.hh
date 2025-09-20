@@ -1,11 +1,13 @@
 #pragma once
 
+#include <boost/functional/hash.hpp>
 #include <cassert>
 #include <iostream>
 #include <limits>
 #include <map>
 #include <stack>
 #include <tuple>
+#include <unordered_map>
 #include <vector>
 
 #include <posets/concepts.hh>
@@ -27,16 +29,20 @@ namespace posets::utils {
 
       // This is a left-child right-sibling implementation of the sharing
       // tree, so we need nodes (with indices of a son and a brother)
-      // and a single array of nodes to store them all
+      // and a single array of nodes to store them all. We also keep a color,
+      // this will be used to define equivalence classes (as we DO NOT go all
+      // the way down to a DFA/DAG, instead storing the intermediate trie).
       size_t dim;
       int root;
       struct st_node {
           typename V::value_type label;
+          int color;
           int son;
           int bro;
       };
       st_node* bin_tree;
 
+      // We will need to compare nodes based on their label
       class gt_wrt_label {
           st_node* t;
 
@@ -46,6 +52,13 @@ namespace posets::utils {
             assert (lhs > -1 and rhs > -1);
             return this->t[lhs].label > this->t[rhs].label;
           }
+      };
+      // We will also need to compare subtrees (assuming the trie construction
+      // has been applied)
+      struct intvec_hash {
+        std::size_t operator() (std::vector<int> const& v) const {
+          return boost::hash_range(v.begin (), v.end ());
+        }
       };
 
       // We change the sibling pointers/indices of children of the given nodes
@@ -138,6 +151,87 @@ namespace posets::utils {
         }
       }
 
+      void color_as_dfa () {
+        std::vector<int> layer[dim];
+
+        // We collect the indices of nodes per layer via a DFS. For this, we
+        // use a stack of node indices and directions (0 down, 1 right)
+        std::stack<std::tuple<int, short>> to_visit;
+        to_visit.emplace (this->root, 0);
+
+        while (not to_visit.empty ()) {
+          assert (to_visit.size () <= this->dim);
+          const auto [idx, direction] = to_visit.top ();
+          to_visit.pop ();
+          st_node* cur = this->bin_tree + idx;
+
+          // base case: reached the bottom layer
+          if (cur->son == -1) {
+            assert (to_visit.size () == this->dim - 1);
+            assert (direction == 0);  // leaves only reached going down
+            layer[to_visit.size ()].push_back (idx);
+            // is there a sibling?
+            if (cur->bro > -1)
+              to_visit.emplace (cur->bro, 0);
+          }
+          // recursive case: we need to push something into the stack
+          else {
+            assert (to_visit.size () < this->dim - 1);
+            // either this is the first time we've seen the node, and we need
+            // to go down pushing a reminder of the next time not being the
+            // first, and its sibling...
+            if (direction == 0) {
+              assert (cur->son > -1);
+              layer[to_visit.size ()].push_back (idx);
+              to_visit.emplace (idx, 1);
+              to_visit.emplace (cur->son, 0);
+            }
+            // or we're already going right and we need to push its
+            // sibling (and start by going down from there)
+            else if (direction == 1) {
+              if (cur->bro > -1)
+                to_visit.emplace (cur->bro, 0);
+            }
+            else
+              assert (false);
+          }
+        }
+        
+        // Now, per layer (in bottom-up fashion) we use a hash table to assign
+        // "colors" to the nodes based on their label and the colors of their
+        // children.
+        int nxt_color = 0;
+        for (int i = this->dim - 1; i >= 0; i--) {
+          std::unordered_map<std::vector<int>, std::vector<int>, intvec_hash> colors2indices;
+          for (const int idx : layer[i]) {
+            st_node* cur = this->bin_tree + idx;
+            std::vector<int> k;
+            k.push_back (cur->label);
+            int son_idx = cur->son;
+            while (son_idx > -1) {
+              cur = this->bin_tree + son_idx;
+              k.push_back (cur->color);
+              son_idx = cur->bro;
+            }
+            colors2indices[k].push_back (idx);
+          }
+          // Every node in this layer is ready to get its equivalence-class
+          // color
+          for (const auto& [key, idces] : colors2indices) {
+            for (const int idx : idces) {
+              st_node* cur = this->bin_tree + idx;
+              cur->color = nxt_color;
+#ifndef NDEBUG
+              std::cout << "layer=" << i << ", label="
+                        << (int) cur->label << ", color="
+                        << cur->color << '\n';
+#endif
+            }
+            nxt_color += 1;
+          }
+        }
+      }
+
     public:
       sharingtree () = delete;
 
@@ -182,7 +276,7 @@ namespace posets::utils {
         this->to_trie ();
 
         // finally, we proceed bottom-up to merge language equivalent nodes
-        // TODO
+        this->color_as_dfa ();
       }
 
       [[nodiscard]] std::vector<V> get_all () const {
