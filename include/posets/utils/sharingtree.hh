@@ -59,7 +59,7 @@ namespace posets::utils {
         // now, for all remaining nodes we
         // (1) get to the last sibling
         // (2) link to the next first sibling and
-        for (int i = 1; i < nodes.size (); i++) {
+        for (size_t i = 1; i < nodes.size (); i++) {
           while (last->bro > -1)
             last = this->bin_tree + last->bro;
           cur = this->bin_tree + nodes[i];
