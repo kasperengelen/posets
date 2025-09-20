@@ -1,5 +1,7 @@
 #pragma once
 
+#include <unordered_map>
+
 #include <boost/functional/hash.hpp>
 #include <cassert>
 #include <iostream>
@@ -7,7 +9,6 @@
 #include <map>
 #include <stack>
 #include <tuple>
-#include <unordered_map>
 #include <vector>
 
 #include <posets/concepts.hh>
@@ -56,9 +57,9 @@ namespace posets::utils {
       // We will also need to compare subtrees (assuming the trie construction
       // has been applied)
       struct intvec_hash {
-        std::size_t operator() (std::vector<int> const& v) const {
-          return boost::hash_range(v.begin (), v.end ());
-        }
+          std::size_t operator() (const std::vector<int>& v) const {
+            return boost::hash_range (v.begin (), v.end ());
+          }
       };
 
       // We change the sibling pointers/indices of children of the given nodes
@@ -196,7 +197,7 @@ namespace posets::utils {
               assert (false);
           }
         }
-        
+
         // Now, per layer (in bottom-up fashion) we use a hash table to assign
         // "colors" to the nodes based on their label and the colors of their
         // children.
@@ -221,11 +222,6 @@ namespace posets::utils {
             for (const int idx : idces) {
               st_node* cur = this->bin_tree + idx;
               cur->color = nxt_color;
-#ifndef NDEBUG
-              std::cout << "layer=" << i << ", label="
-                        << (int) cur->label << ", color="
-                        << cur->color << '\n';
-#endif
             }
             nxt_color += 1;
           }
