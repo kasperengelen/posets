@@ -6,6 +6,7 @@
 #include <posets/downsets/set_backed.hh>
 #include <posets/downsets/sharingtree_backed.hh>
 #include <posets/downsets/simple_sharingtree_backed.hh>
+#include <posets/downsets/sharingtrie_backed.hh>
 #include <posets/downsets/vector_backed.hh>
 #include <posets/downsets/vector_backed_bin.hh>
 #include <posets/downsets/vector_backed_one_dim_split_intersection_only.hh>
@@ -23,4 +24,5 @@ namespace posets::downsets {
   static_assert (Downset<set_backed<posets::vectors::vector_backed<int>>>);
   static_assert (Downset<sharingtree_backed<posets::vectors::vector_backed<int>>>);
   static_assert (Downset<simple_sharingtree_backed<posets::vectors::vector_backed<int>>>);
+  static_assert (Downset<sharingtrie_backed<posets::vectors::vector_backed<int>>>);
 }

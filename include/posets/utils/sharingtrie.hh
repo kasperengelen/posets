@@ -17,16 +17,16 @@ namespace posets::utils {
 
   // Forward definition for the operator<<
   template <Vector>
-  class sharingtree;
+  class sharingtrie;
 
   template <Vector V>
-  std::ostream& operator<< (std::ostream& os, const utils::sharingtree<V>& f);
+  std::ostream& operator<< (std::ostream& os, const utils::sharingtrie<V>& f);
 
   template <Vector V>
-  class sharingtree {
+  class sharingtrie {
     private:
       template <Vector V2>
-      friend std::ostream& operator<< (std::ostream& os, const utils::sharingtree<V2>& f);
+      friend std::ostream& operator<< (std::ostream& os, const utils::sharingtrie<V2>& f);
 
       // This is a left-child right-sibling implementation of the sharing
       // tree, so we need nodes (with indices of a son and a brother)
@@ -215,12 +215,12 @@ namespace posets::utils {
       }
 
     public:
-      sharingtree () = delete;
+      sharingtrie () = delete;
 
-      ~sharingtree () { delete[] this->bin_tree; }
+      ~sharingtrie () { delete[] this->bin_tree; }
 
       template <std::ranges::input_range R, class Proj = std::identity>
-      sharingtree (R&& elements, Proj proj = {}) : dim (proj (*elements.begin ()).size ()) {
+      sharingtrie (R&& elements, Proj proj = {}) : dim (proj (*elements.begin ()).size ()) {
         this->bin_tree = new st_node[dim * elements.size ()];
         this->root = 0;
 
@@ -261,7 +261,7 @@ namespace posets::utils {
         this->color_as_dfa ();
       }
 
-      // Check, for a given vector, whether some vector in this sharingtree
+      // Check, for a given vector, whether some vector in this sharingtrie
       // dominates it. We explicitly avoid making this recursive as
       // experiments show large-dimensional vectors may make this overflow
       // otherwise.
@@ -384,7 +384,7 @@ namespace posets::utils {
   };
 
   template <Vector V>
-  inline std::ostream& operator<< (std::ostream& os, const sharingtree<V>& f) {
+  inline std::ostream& operator<< (std::ostream& os, const sharingtrie<V>& f) {
     for (auto&& el : f.get_all ())
       os << el << '\n';
     return os;
