@@ -19,19 +19,82 @@ int main (int argc, const char* argv[]) {
   utils::sharingtree<VType> f1 (std::move (vvtovv (data)));
   std::cout << f1 << std::endl;
   assert (f1.get_all ().size () == 3);
+  {
+    std::vector<char> v = {5, 2, 1};
+    VType vec (std::move (v));
+    assert (f1.dominates (vec));
+  }
+  {
+    std::vector<char> v = {6, 3, 2};
+    VType vec (std::move (v));
+    assert (not f1.dominates (vec, true));
+  }
+  {
+    std::vector<char> v = {6, 3, 2};
+    VType vec (std::move (v));
+    assert (f1.dominates (vec));
+  }
+  {
+    std::vector<char> v = {7, 7, 7};
+    VType vec (std::move (v));
+    assert (not f1.dominates (vec));
+  }
+  {
+    std::vector<char> v = {1, 6, 2};
+    VType vec (std::move (v));
+    assert (f1.dominates (vec));
+  }
 
-  // Test adding a second tree to the forest
+
   data = {{7, 4, 3}, {4, 8, 4}, {2, 5, 6}, {1, 9, 9}};
   utils::sharingtree<VType> f2 (std::move (vvtovv (data)));
   std::cout << f2 << std::endl;
   assert (f2.get_all ().size () == 4);
+  {
+    std::vector<char> v = {1, 6, 2};
+    VType vec (std::move (v));
+    assert (f2.dominates (vec));
+  }
+  {
+    std::vector<char> v = {7, 7, 7};
+    VType vec (std::move (v));
+    assert (not f2.dominates (vec));
+  }
+  {
+    std::vector<char> v = {2, 5, 6};
+    VType vec (std::move (v));
+    assert (f2.dominates (vec));
+  }
+  {
+    std::vector<char> v = {2, 5, 6};
+    VType vec (std::move (v));
+    assert (not f2.dominates (vec, true));
+  }
 
-  // And yet another tree, this time with a shared suffix
-  // and with dimension 4
   data = {{3, 2, 2, 2}, {4, 1, 2, 1}, {5, 0, 2, 1}};
   utils::sharingtree<VType> f3 (std::move (vvtovv (data)));
   std::cout << f3 << std::endl;
   assert (f3.get_all ().size () == 3);
+  {
+    std::vector<char> v = {1, 2, 2, 1};
+    VType vec (std::move (v));
+    assert (f3.dominates (vec));
+  }
+  {
+    std::vector<char> v = {7, 7, 7, 0};
+    VType vec (std::move (v));
+    assert (not f3.dominates (vec));
+  }
+  {
+    std::vector<char> v = {4, 1, 2, 1};
+    VType vec (std::move (v));
+    assert (f3.dominates (vec));
+  }
+  {
+    std::vector<char> v = {4, 1, 2, 1};
+    VType vec (std::move (v));
+    assert (not f3.dominates (vec, true));
+  }
 
   return 0;
 }

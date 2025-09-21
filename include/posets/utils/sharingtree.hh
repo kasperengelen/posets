@@ -1,11 +1,11 @@
 #pragma once
 
 #include <unordered_map>
+#include <unordered_set>
 
 #include <boost/functional/hash.hpp>
 #include <cassert>
 #include <iostream>
-#include <limits>
 #include <map>
 #include <stack>
 #include <tuple>
@@ -31,8 +31,8 @@ namespace posets::utils {
       // This is a left-child right-sibling implementation of the sharing
       // tree, so we need nodes (with indices of a son and a brother)
       // and a single array of nodes to store them all. We also keep a color,
-      // this will be used to define equivalence classes (as we DO NOT go all
-      // the way down to a DFA/DAG, instead storing the intermediate trie).
+      // this will be used to define equivalence classes (as we DO NOT reduce
+      // to a DFA/DAG, instead storing the intermediate trie).
       size_t dim;
       int root;
       struct st_node {
@@ -43,18 +43,7 @@ namespace posets::utils {
       };
       st_node* bin_tree;
 
-      // We will need to compare nodes based on their label
-      class gt_wrt_label {
-          st_node* t;
-
-        public:
-          gt_wrt_label (st_node* that) : t {that} {}
-          bool operator() (int lhs, int rhs) const {
-            assert (lhs > -1 and rhs > -1);
-            return this->t[lhs].label > this->t[rhs].label;
-          }
-      };
-      // We will also need to compare subtrees (assuming the trie construction
+      // We need to compare subtrees (assuming the trie construction
       // has been applied)
       struct intvec_hash {
           std::size_t operator() (const std::vector<int>& v) const {
@@ -87,14 +76,10 @@ namespace posets::utils {
         // modes (0 reorder siblings, 1 down, 2 right)
         std::stack<std::tuple<int, short>> to_visit;
         to_visit.emplace (this->root, 0);
-        std::vector<V> res;
-        std::vector<typename V::value_type> temp;
-        // We reset the root since it may move
-        this->root = std::numeric_limits<int>::min ();
 
         while (not to_visit.empty ()) {
           assert (to_visit.size () <= this->dim);
-          auto [idx, mode] = to_visit.top ();
+          const auto [idx, mode] = to_visit.top ();
           to_visit.pop ();
 
           if (mode == 1) {
@@ -116,11 +101,12 @@ namespace posets::utils {
           }
           else if (mode == 0) {
             // order nodes in label-decreasing order
-            std::map<int, std::vector<int>, gt_wrt_label> buckets (gt_wrt_label (this->bin_tree));
-            while (idx > -1) {
-              st_node* cur = this->bin_tree + idx;
-              buckets[cur->label].push_back (idx);
-              idx = cur->bro;
+            std::map<int, std::vector<int>, std::greater<int>> buckets;
+            int sib_idx = idx;
+            while (sib_idx > -1) {
+              st_node* cur = this->bin_tree + sib_idx;
+              buckets[cur->label].push_back (sib_idx);
+              sib_idx = cur->bro;
             }
             // traverse the map in order to construct a set of children with the
             // first node per label only (in decreasing order)
@@ -180,7 +166,7 @@ namespace posets::utils {
             assert (to_visit.size () < this->dim - 1);
             // either this is the first time we've seen the node, and we need
             // to go down pushing a reminder of the next time not being the
-            // first, and its sibling...
+            // first, and its child...
             if (direction == 0) {
               assert (cur->son > -1);
               layer[to_visit.size ()].push_back (idx);
@@ -275,6 +261,76 @@ namespace posets::utils {
         this->color_as_dfa ();
       }
 
+      // Check, for a given vector, whether some vector in this sharingtree
+      // dominates it. We explicitly avoid making this recursive as
+      // experiments show large-dimensional vectors may make this overflow
+      // otherwise.
+      bool dominates (const V& v, bool strict = false) const {
+        // This is essentially going to be a DFS where we check for domination
+        // at each level/dimension and stopping when it does not hold (recall
+        // we have ordered things in increasing fashion, so no need to look at
+        // the right subtrees afterwards). To speed things up, we keep track
+        // of visited colors per level.
+
+        // First the DFS, for which we use a stack of node indices and
+        // directions (0 down, 1 right)
+        std::stack<std::tuple<int, short>> to_visit;
+        to_visit.emplace (this->root, 0);
+        std::unordered_set<int> colors_visited[this->dim];
+
+        while (not to_visit.empty ()) {
+          assert (to_visit.size () <= this->dim);
+          const auto [idx, direction] = to_visit.top ();
+          to_visit.pop ();
+          st_node* cur = this->bin_tree + idx;
+          // This is a general check, if this does not hold, we can ignore
+          // the subtree and the siblings (since children have been sorted in
+          // decreasing order).
+          typename V::value_type v_comp = v[to_visit.size ()];
+          if ((cur->label < v_comp) or (cur->label == v_comp and strict))
+            continue;
+
+          // base case: reached the bottom layer
+          if (cur->son == -1) {
+            assert (to_visit.size () == this->dim - 1);
+            assert (direction == 0);  // leaves only reached going down
+            return true;
+          }
+          // recursive case: we may need to push something into the stack
+          else {
+            assert (to_visit.size () < this->dim - 1);
+            // either this is the first time we've seen the node, and we need
+            // to go down pushing a reminder of the next time not being the
+            // first, and its child...
+            if (direction == 0) {
+              assert (cur->son > -1);
+              // before actually checking this subtree, we check if we've
+              // visited an equivalent one and otherwise mark it for the
+              // future; skipping = go to sibling directly (as in dir=1)
+              auto iter = colors_visited[to_visit.size ()].find (cur->color);
+              if (iter != colors_visited[to_visit.size ()].end ()) {
+                if (cur->bro > -1)
+                  to_visit.emplace (cur->bro, 0);
+              }
+              else {
+                colors_visited[to_visit.size ()].insert (cur->color);
+                to_visit.emplace (idx, 1);
+                to_visit.emplace (cur->son, 0);
+              }
+            }
+            // or we're already going right and we need to push its
+            // sibling (and start by going down from there)
+            else if (direction == 1) {
+              if (cur->bro > -1)
+                to_visit.emplace (cur->bro, 0);
+            }
+            else
+              assert (false);
+          }
+        }
+        return false;
+      }
+
       [[nodiscard]] std::vector<V> get_all () const {
         // A stack of node indices and directions (0 down, 1 right)
         std::stack<std::tuple<int, short>> to_visit;
@@ -304,7 +360,7 @@ namespace posets::utils {
             assert (to_visit.size () < this->dim - 1);
             // either this is the first time we've seen the node, and we need
             // to go down pushing a reminder of the next time not being the
-            // first, and its sibling...
+            // first, and its child...
             if (direction == 0) {
               assert (cur->son > -1);
               to_visit.emplace (idx, 1);
