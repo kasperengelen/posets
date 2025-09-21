@@ -79,7 +79,9 @@ namespace posets::downsets {
 
       sharingtrie_backed () = delete;
 
-      sharingtrie_backed (std::vector<V>&& elements) noexcept { reset_tree (std::move (elements)); }
+      sharingtrie_backed (std::vector<V>&& elements) noexcept {
+        reset_tree (std::move (elements));
+      }
 
       sharingtrie_backed (V&& e) : tree (std::array<V, 1> {std::move (e)}) {}
 
