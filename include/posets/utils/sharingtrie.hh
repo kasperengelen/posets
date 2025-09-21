@@ -7,6 +7,7 @@
 #include <cassert>
 #include <iostream>
 #include <map>
+#include <ranges>
 #include <stack>
 #include <tuple>
 #include <vector>
@@ -42,6 +43,8 @@ namespace posets::utils {
           int bro;
       };
       st_node* bin_tree;
+      size_t bt_size;
+      std::vector<V> vector_set;
 
       // We need to compare subtrees (assuming the trie construction
       // has been applied)
@@ -215,25 +218,44 @@ namespace posets::utils {
       }
 
     public:
-      sharingtrie () = delete;
-
-      ~sharingtrie () { delete[] this->bin_tree; }
-
       template <std::ranges::input_range R, class Proj = std::identity>
-      sharingtrie (R&& elements, Proj proj = {}) : dim (proj (*elements.begin ()).size ()) {
-        this->bin_tree = new st_node[dim * elements.size ()];
+      void relabel_trie (R&& elements, Proj proj = {}) {
+        this->dim = (proj (*elements.begin ()).size ());
+
+        // sanity checks
+        assert (elements.size () > 0);
+        assert (this->dim > 0);
+
+        // allocating memory
+        if (this->bin_tree == nullptr) {
+          this->bt_size = this->dim * elements.size ();
+          this->bin_tree = new st_node[bt_size];
+        }
+        else if (this->bt_size < this->dim * elements.size ()) {
+          delete[] this->bin_tree;
+          this->bt_size = this->dim * elements.size ();
+          this->bin_tree = new st_node[bt_size];
+        }
+
         this->root = 0;
 
-        // moving the given elements to the internal array in the form of
-        // linear trees (just strings) with their roots being siblings
+        // moving the given elements to the internal data structure
+        std::vector<V> newset;
+        newset.reserve (elements.size ());
+        for (auto&& e : elements | std::views::reverse)
+          newset.push_back (proj (std::move (e)));
+        this->vector_set = std::move (newset);
+        // WARNING: avoid using elements from here onward
+
+        // creating linear trees with their roots being siblings
         int idx = 0;
         st_node* prev_root = nullptr;
-        for (auto&& e : elements) {
+        for (auto&& e : this->vector_set) {
           bool first_comp = true;
           st_node* prev_node;
-          for (auto&& comp : e) {
+          for (size_t c = 0; c < e.size (); c++) {
             st_node* cur_node = this->bin_tree + idx;
-            cur_node->label = (int) comp;
+            cur_node->label = (int) e[c];
             cur_node->bro = -1;
             cur_node->son = -1;
             // if it's the first component of the vector and there is a
@@ -259,6 +281,46 @@ namespace posets::utils {
 
         // finally, we proceed bottom-up to merge language equivalent nodes
         this->color_as_dfa ();
+      }
+
+      template <std::ranges::input_range R, class Proj = std::identity>
+      sharingtrie (R&& elements, Proj proj = {})
+        : dim (proj (*elements.begin ()).size ()),
+          bin_tree (nullptr) {
+        relabel_trie (std::forward<R> (elements), proj);
+      }
+
+      sharingtrie () : bin_tree (nullptr) {}
+      sharingtrie (size_t dim) : dim (dim), bin_tree (nullptr) {}
+      sharingtrie (size_t dim, size_t initsize) : dim (dim) {
+        this->bin_tree = new st_node[initsize];
+      }
+      sharingtrie (const sharingtrie& other) = delete;
+      sharingtrie (sharingtrie&& other) noexcept
+        : dim (other.dim),
+          root (other.root),
+          bin_tree (other.bin_tree),
+          bt_size (other.bt_size),
+          vector_set (std::move (other.vector_set)) {
+        other.bin_tree = nullptr;
+      }
+      ~sharingtrie () { delete[] this->bin_tree; }
+      sharingtrie& operator= (sharingtrie&& other) noexcept {
+        this->dim = other.dim;
+        this->root = other.root;
+        this->bt_size = other.bt_size;
+        this->vector_set = std::move (other.vector_set);
+        // WARNING: 3 variable follows to make the whole thing safe for
+        // self-assignment
+        st_node* temp_tree = other.bin_tree;
+        other.bin_tree = nullptr;
+        // NOTE: this must be here, after having a local copy of the other
+        // tree and before moving it to here, because of self-assignment
+        // safety!
+        delete[] this->bin_tree;
+        // we now copy things here and return
+        this->bin_tree = temp_tree;
+        return *this;
       }
 
       // Check, for a given vector, whether some vector in this sharingtrie
@@ -381,6 +443,28 @@ namespace posets::utils {
 
         return res;
       }
+
+      [[nodiscard]] auto& get_backing_vector () { return vector_set; }
+      [[nodiscard]] const auto& get_backing_vector () const { return vector_set; }
+      [[nodiscard]] bool is_antichain () const {
+        for (auto it = this->begin (); it != this->end (); ++it) {
+          for (auto it2 = it + 1; it2 != this->end (); ++it2) {
+            auto po = it->partial_order (*it2);
+            if (po.leq () or po.geq ())
+              return false;
+          }
+        }
+        return true;
+      }
+      [[nodiscard]] bool operator== (const sharingtrie& other) const {
+        return this->vector_set == other.vector_set;
+      }
+      [[nodiscard]] auto size () const { return this->vector_set.size (); }
+      [[nodiscard]] bool empty () { return this->vector_set.empty (); }
+      [[nodiscard]] auto begin () noexcept { return this->vector_set.begin (); }
+      [[nodiscard]] auto begin () const noexcept { return this->vector_set.begin (); }
+      [[nodiscard]] auto end () noexcept { return this->vector_set.end (); }
+      [[nodiscard]] auto end () const noexcept { return this->vector_set.end (); }
   };
 
   template <Vector V>
