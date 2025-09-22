@@ -253,8 +253,8 @@ namespace posets::utils {
         for (const auto& e : this->vector_set) {
           bool first_comp = true;
           st_node* prev_node;
+          st_node* cur_node = this->bin_tree + idx;
           for (size_t c = 0; c < e.size (); c++) {
-            st_node* cur_node = this->bin_tree + idx;
             cur_node->label = e[c];
             cur_node->bro = -1;
             cur_node->son = -1;
@@ -272,6 +272,7 @@ namespace posets::utils {
               prev_node->son = idx;
             prev_node = cur_node;
             idx += 1;
+            cur_node += 1;
           }
         }
 
@@ -327,71 +328,77 @@ namespace posets::utils {
       // dominates it. We explicitly avoid making this recursive as
       // experiments show large-dimensional vectors may make this overflow
       // otherwise.
-      [[nodiscard]]
-      bool dominates (const V& v, bool strict = false) const {
+      [[nodiscard]] bool dominates (const V& v, bool strict = false) const {
         // This is essentially going to be a DFS where we check for domination
         // at each level/dimension and stopping when it does not hold (recall
         // we have ordered things in increasing fashion, so no need to look at
         // the right subtrees afterwards). To speed things up, we keep track
-        // of visited colors per level.
+        // of visited colors and strictness per level.
 
         // First the DFS, for which we use a stack of node indices and
-        // directions (0 down, 1 right)
-        std::stack<std::tuple<int, short>> to_visit;
-        to_visit.emplace (this->root, 0);
+        // directions (0 down, 1 right). We also keep track of the strictness
+        // required thus far.
+        std::stack<std::tuple<int, short, bool>> to_visit;
+        to_visit.emplace (this->root, 0, strict);
         std::vector<std::unordered_set<int>> colors_visited (this->dim);
 
         bool ret = false;
         while (not to_visit.empty ()) {
           assert (to_visit.size () <= this->dim);
-          const auto [idx, direction] = to_visit.top ();
+          const auto [idx, direction, loc_strict] = to_visit.top ();
           to_visit.pop ();
           st_node* cur = this->bin_tree + idx;
-          // This is a general check, if this does not hold, we can ignore
-          // the subtree and the siblings (since children have been sorted in
-          // decreasing order).
-          const typename V::value_type v_comp = v[to_visit.size ()];
-          if ((cur->label < v_comp) or (cur->label == v_comp and strict))
-            continue;
 
-          // base case: reached the bottom layer
-          if (cur->son == -1) {
-            assert (to_visit.size () == this->dim - 1);
-            assert (direction == 0);  // leaves only reached going down
-            ret = true;
-            break;
-          }
-          // recursive case: we may need to push something into the stack
-          else {
+          // if we're already going right, we need to push its
+          // sibling and start by going down from there with the same local
+          // strictness
+          if (direction == 1) {
+            // leaves only reached going down
             assert (to_visit.size () < this->dim - 1);
-            // either this is the first time we've seen the node, and we need
-            // to go down pushing a reminder of the next time not being the
-            // first, and its child...
-            if (direction == 0) {
-              assert (cur->son > -1);
+            if (cur->bro > -1)
+              to_visit.emplace (cur->bro, 0, loc_strict);
+          }
+          else if (direction == 0) {
+            // This is a general check, if this does not hold, we can ignore
+            // the subtree and the siblings (since children have been sorted in
+            // decreasing order).
+            const typename V::value_type v_comp = v[to_visit.size ()];
+            if (cur->label < v_comp)
+              continue;
+            bool new_strict = loc_strict and (cur->label == v_comp);
+
+            // base case: reached the bottom layer
+            if (cur->son == -1) {
+              assert (to_visit.size () == this->dim - 1);
+              // we can stop and declare domination if we don't still owe
+              // a strict domination
+              if (not new_strict) {
+                ret = true;
+                break;
+              }
+              // otherwise, we just backtrack and avoid the siblings
+            }
+            // recursive case: we may need to push something into the stack
+            else {
+              assert (to_visit.size () < this->dim - 1);
               // before actually checking this subtree, we check if we've
               // visited an equivalent one and otherwise mark it for the
               // future; skipping = go to sibling directly (as in dir=1)
-              auto iter = colors_visited[to_visit.size ()].find (cur->color);
+              int strict_color = (cur->color << 1) + (new_strict ? 1 : 0);
+              auto iter = colors_visited[to_visit.size ()].find (strict_color);
               if (iter != colors_visited[to_visit.size ()].end ()) {
                 if (cur->bro > -1)
-                  to_visit.emplace (cur->bro, 0);
+                  to_visit.emplace (cur->bro, 0, loc_strict);
               }
               else {
-                colors_visited[to_visit.size ()].insert (cur->color);
-                to_visit.emplace (idx, 1);
-                to_visit.emplace (cur->son, 0);
+                colors_visited[to_visit.size ()].insert (strict_color);
+                to_visit.emplace (idx, 1, loc_strict);
+                to_visit.emplace (cur->son, 0, new_strict);
               }
             }
-            // or we're already going right and we need to push its
-            // sibling (and start by going down from there)
-            else if (direction == 1) {
-              if (cur->bro > -1)
-                to_visit.emplace (cur->bro, 0);
-            }
-            else
-              assert (false);
           }
+          else
+            assert (false);
         }
         return ret;
       }
