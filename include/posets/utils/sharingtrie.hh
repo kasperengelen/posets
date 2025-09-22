@@ -250,12 +250,12 @@ namespace posets::utils {
         // creating linear trees with their roots being siblings
         int idx = 0;
         st_node* prev_root = nullptr;
-        for (auto&& e : this->vector_set) {
+        for (const auto& e : this->vector_set) {
           bool first_comp = true;
           st_node* prev_node;
           for (size_t c = 0; c < e.size (); c++) {
             st_node* cur_node = this->bin_tree + idx;
-            cur_node->label = (int) e[c];
+            cur_node->label = e[c];
             cur_node->bro = -1;
             cur_node->son = -1;
             // if it's the first component of the vector and there is a

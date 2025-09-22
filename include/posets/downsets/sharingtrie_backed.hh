@@ -35,8 +35,11 @@ namespace posets::downsets {
       void reset_trie (std::vector<V>&& elements) noexcept {
         std::vector<V*> pelements;
         pelements.reserve (elements.size ());
-        for (auto& e : elements)
+        std::cout << "in " << '\n';
+        for (auto& e : elements) {
           pelements.push_back (&e);
+          std::cout << e << '\n';
+        }
 
         // now, we can make a trie out of the set to eliminate dominated
         // elements
@@ -46,11 +49,15 @@ namespace posets::downsets {
 
         // Get all will produce vectors represented by the trie, this will
         // avoid possibly repeated ones in elements!
-        for (V& e : this->trie.get_all ())
+        std::vector<V> repd = this->trie.get_all ();
+        for (auto& e : repd)
           if (not this->trie.dominates (e, true))
             antichain.push_back (&e);
 
         this->trie.relabel_trie (std::move (antichain), proj ());
+        std::cout << "out " << '\n';
+        for (auto& d : this->trie)
+          std::cout << d << '\n';
         assert (this->trie.is_antichain ());
       }
 

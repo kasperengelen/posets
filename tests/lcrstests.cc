@@ -96,5 +96,27 @@ int main (int argc, const char* argv[]) {
     assert (not f3.dominates (vec, true));
   }
 
+  data = {{-1, 0}, {-1, 1}, {-1, 0}, {-1, 1}, {-1, 0}, {0, -1}};
+  utils::sharingtrie<VType> f4 (std::move (vvtovv (data)));
+  std::cout << f4 << std::endl;
+  {
+    std::vector<char> v = {-1, 0};
+    VType vec (std::move (v));
+    assert (f4.dominates (vec));
+    assert (f4.dominates (vec, true));
+  }
+  {
+    std::vector<char> v = {-1, 1};
+    VType vec (std::move (v));
+    assert (f4.dominates (vec));
+    assert (not f4.dominates (vec, true));
+  }
+  {
+    std::vector<char> v = {0, -1};
+    VType vec (std::move (v));
+    assert (f4.dominates (vec));
+    assert (not f4.dominates (vec, true));
+  }
+
   return 0;
 }
