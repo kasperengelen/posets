@@ -35,9 +35,8 @@ namespace posets::downsets {
       void reset_trie (std::vector<V>&& elements) noexcept {
         std::vector<V*> pelements;
         pelements.reserve (elements.size ());
-        for (auto& e : elements) {
+        for (auto& e : elements)
           pelements.push_back (&e);
-        }
 
         // now, we can make a trie out of the set to eliminate dominated
         // elements
