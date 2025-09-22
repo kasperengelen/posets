@@ -35,10 +35,8 @@ namespace posets::downsets {
       void reset_trie (std::vector<V>&& elements) noexcept {
         std::vector<V*> pelements;
         pelements.reserve (elements.size ());
-        std::cout << "in " << '\n';
         for (auto& e : elements) {
           pelements.push_back (&e);
-          std::cout << e << '\n';
         }
 
         // now, we can make a trie out of the set to eliminate dominated
@@ -55,9 +53,6 @@ namespace posets::downsets {
             antichain.push_back (&e);
 
         this->trie.relabel_trie (std::move (antichain), proj ());
-        std::cout << "out " << '\n';
-        for (auto& d : this->trie)
-          std::cout << d << '\n';
         assert (this->trie.is_antichain ());
       }
 
