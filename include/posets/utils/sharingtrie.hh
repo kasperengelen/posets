@@ -365,7 +365,7 @@ namespace posets::utils {
             const typename V::value_type v_comp = v[to_visit.size ()];
             if (cur->label < v_comp)
               continue;
-            bool new_strict = loc_strict and (cur->label == v_comp);
+            const bool new_strict = loc_strict and (cur->label == v_comp);
 
             // base case: reached the bottom layer
             if (cur->son == -1) {
@@ -384,7 +384,7 @@ namespace posets::utils {
               // before actually checking this subtree, we check if we've
               // visited an equivalent one and otherwise mark it for the
               // future; skipping = go to sibling directly (as in dir=1)
-              int strict_color = (cur->color << 1) + (new_strict ? 1 : 0);
+              const int strict_color = (cur->color << 1) + (new_strict ? 1 : 0);
               auto iter = colors_visited[to_visit.size ()].find (strict_color);
               if (iter != colors_visited[to_visit.size ()].end ()) {
                 if (cur->bro > -1)
