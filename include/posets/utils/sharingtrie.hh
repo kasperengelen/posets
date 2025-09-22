@@ -104,7 +104,7 @@ namespace posets::utils {
           }
           else if (mode == 0) {
             // order nodes in label-decreasing order
-            std::map<int, std::vector<int>, std::greater<int>> buckets;
+            std::map<int, std::vector<int>, std::greater<>> buckets;
             int sib_idx = idx;
             while (sib_idx > -1) {
               st_node* cur = this->bin_tree + sib_idx;
@@ -125,7 +125,7 @@ namespace posets::utils {
             }
             prev->bro = -1;
             // now, we either repair the root, or the top-of-stack node
-            if (to_visit.size () > 0) {
+            if (not to_visit.empty ()) {
               const auto [idx_parent, mode_parent] = to_visit.top ();
               assert (mode_parent == 2);  // went down already, next time right
               st_node* parent = this->bin_tree + idx_parent;
@@ -142,7 +142,7 @@ namespace posets::utils {
       }
 
       void color_as_dfa () {
-        std::vector<int> layer[dim];
+        std::vector<std::vector<int>> layer (dim);
 
         // We collect the indices of nodes per layer via a DFS. For this, we
         // use a stack of node indices and directions (0 down, 1 right)
@@ -327,6 +327,7 @@ namespace posets::utils {
       // dominates it. We explicitly avoid making this recursive as
       // experiments show large-dimensional vectors may make this overflow
       // otherwise.
+      [[nodiscard]]
       bool dominates (const V& v, bool strict = false) const {
         // This is essentially going to be a DFS where we check for domination
         // at each level/dimension and stopping when it does not hold (recall
@@ -338,8 +339,9 @@ namespace posets::utils {
         // directions (0 down, 1 right)
         std::stack<std::tuple<int, short>> to_visit;
         to_visit.emplace (this->root, 0);
-        std::unordered_set<int> colors_visited[this->dim];
+        std::vector<std::unordered_set<int>> colors_visited (this->dim);
 
+        bool ret = false;
         while (not to_visit.empty ()) {
           assert (to_visit.size () <= this->dim);
           const auto [idx, direction] = to_visit.top ();
@@ -348,7 +350,7 @@ namespace posets::utils {
           // This is a general check, if this does not hold, we can ignore
           // the subtree and the siblings (since children have been sorted in
           // decreasing order).
-          typename V::value_type v_comp = v[to_visit.size ()];
+          const typename V::value_type v_comp = v[to_visit.size ()];
           if ((cur->label < v_comp) or (cur->label == v_comp and strict))
             continue;
 
@@ -356,7 +358,8 @@ namespace posets::utils {
           if (cur->son == -1) {
             assert (to_visit.size () == this->dim - 1);
             assert (direction == 0);  // leaves only reached going down
-            return true;
+            ret = true;
+            break;
           }
           // recursive case: we may need to push something into the stack
           else {
@@ -390,7 +393,7 @@ namespace posets::utils {
               assert (false);
           }
         }
-        return false;
+        return ret;
       }
 
       [[nodiscard]] std::vector<V> get_all () const {
