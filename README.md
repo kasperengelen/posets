@@ -6,6 +6,7 @@ The implementations include:
 * Vector-based data structures
 * kd-tree-based data structures
 * Sharing-tree data structures (much like binary decision diagrams)
+* Sharing-trie data structures (like sharing-tree, which is actually a DFA, but kept as a tree)
 
 ## Applications
 The downset data structures have been optimized for the following
