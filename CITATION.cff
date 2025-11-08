@@ -1,0 +1,8 @@
+@inproceedings{cadilhac12025natural,
+  title={Data Structures for Finite Downsets of Natural Vectors: Theory and Practice},
+  author={Cadilhac, Micha{\"e}l and Fl{\"u}gel, Vanessa and P{\'e}rez, Guillermo A and Rao, Shrisha},
+  booktitle={Automated Technology for Verification and Analysis: 23rd International Symposium, ATVA 2025, Bengaluru, India, October 27--31, 2025, Proceedings},
+  pages={425},
+  year={2025},
+  organization={Springer Nature}
+}
