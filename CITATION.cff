@@ -1,8 +1,35 @@
-@inproceedings{cadilhac12025natural,
-  title={Data Structures for Finite Downsets of Natural Vectors: Theory and Practice},
-  author={Cadilhac, Micha{\"e}l and Fl{\"u}gel, Vanessa and P{\'e}rez, Guillermo A and Rao, Shrisha},
-  booktitle={Automated Technology for Verification and Analysis: 23rd International Symposium, ATVA 2025, Bengaluru, India, October 27--31, 2025, Proceedings},
-  pages={425},
-  year={2025},
-  organization={Springer Nature}
-}
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+authors:
+- family-names: "Cadilhac"
+  given-names: "Michaël"
+  orcid: "https://orcid.org/0000-0001-9828-9129"
+- family-names: "Flügel"
+  given-names: "Vanessa"
+- family-names: "Pérez"
+  given-names: "Guillermo A."
+  orcid: "https://orcid.org/0000-0002-1200-4952"
+- family-names: "Rao"
+  given-names: "Shrisha"
+title: "Posets"
+url: "https://github.com/michaelcadilhac/posets"
+preferred-citation:
+  type: conference-paper
+  authors:
+  - family-names: "Cadilhac"
+    given-names: "Michaël"
+    orcid: "https://orcid.org/0000-0001-9828-9129"
+  - family-names: "Flügel"
+    given-names: "Vanessa"
+  - family-names: "Pérez"
+    given-names: "Guillermo A."
+    orcid: "https://orcid.org/0000-0002-1200-4952"
+  - family-names: "Rao"
+    given-names: "Shrisha"
+  booktitle: "ATVA"
+  series: "LNCS"
+  publisher: "Springer"
+  start: 425 # First page number
+  end: 440 # Last page number
+  title: "Data Structures for Finite Downsets of Natural Vectors: Theory and Practice"
+  year: 2025
